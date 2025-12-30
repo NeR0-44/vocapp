@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lottie/lottie.dart';
+import 'package:confetti/confetti.dart';
 import '../providers/quiz_provider.dart';
-import '../main.dart'; // WICHTIG: Import für den ttsServiceProvider
+import '../main.dart';
 
 class QuizScreen extends ConsumerStatefulWidget {
   const QuizScreen({super.key});
@@ -12,8 +14,23 @@ class QuizScreen extends ConsumerStatefulWidget {
 
 class _QuizScreenState extends ConsumerState<QuizScreen> {
   final _answerController = TextEditingController();
+  late ConfettiController _confettiController;
   String _feedback = "";
   bool _answeredCorrectly = false;
+  bool _hasStarted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _confettiController = ConfettiController(duration: const Duration(seconds: 3));
+  }
+
+  @override
+  void dispose() {
+    _confettiController.dispose();
+    _answerController.dispose();
+    super.dispose();
+  }
 
   void _check(String correctAnswer) {
     final input = _answerController.text.trim().toLowerCase();
@@ -21,12 +38,10 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
       if (input == correctAnswer.toLowerCase()) {
         _feedback = "Hervorragend! 🎉";
         _answeredCorrectly = true;
-        // SOUND BEI ERFOLG
         ref.read(audioServiceProvider).playSuccess();
       } else {
         _feedback = "Nicht ganz korrekt.\nDie Antwort ist: $correctAnswer";
         _answeredCorrectly = false;
-        // SOUND BEI FEHLER
         ref.read(audioServiceProvider).playError();
       }
     });
@@ -40,170 +55,156 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     });
   }
 
+  void _startQuiz() {
+    ref.read(quizProvider.notifier).restart();
+    setState(() => _hasStarted = true);
+  }
+
   @override
   Widget build(BuildContext context) {
     final quizState = ref.watch(quizProvider);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
-    // AUTO-SPEAK: Liest das Wort automatisch vor, wenn ein neues erscheint
+    // AUTO-SPEAK & CONFETTI TRIGGER
     ref.listen(quizProvider, (previous, next) {
-      if (next.currentWord != null && _feedback.isEmpty && previous?.currentWord != next.currentWord) {
+      if (_hasStarted && next.currentWord != null && _feedback.isEmpty && previous?.currentWord != next.currentWord) {
         ref.read(ttsServiceProvider).speak(next.currentWord!.english);
+      }
+      if (next.isFinished) {
+        _confettiController.play();
       }
     });
 
-    // 1. Fall: Keine Vokabeln vorhanden
-    if (quizState.remainingWords.isEmpty && !quizState.isFinished) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Quiz')),
-        body: const Center(child: Text('Füge erst Vokabeln hinzu.')),
-      );
-    }
-
-    // 2. Fall: Alle Vokabeln geschafft! (Erfolgs-Screen)
-    if (quizState.isFinished) {
-      return _buildSuccessScreen(context);
-    }
-
-    // 3. Fall: Das eigentliche Quiz
-    final word = quizState.currentWord!;
+    if (quizState.isFinished) return _buildSuccessScreen(context);
     
-    // Fortschritt berechnen
+    if (!_hasStarted || (quizState.remainingWords.isEmpty && !quizState.isFinished)) {
+      return _buildStartScreen(context, quizState);
+    }
+
+    final word = quizState.currentWord!;
     final totalWords = ref.read(quizProvider.notifier).totalCount;
     final progress = totalWords > 0 ? (totalWords - quizState.remainingWords.length) / totalWords : 0.0;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
         title: const Text('Training', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.indigo,
-        foregroundColor: Colors.white,
-        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.close), 
+          onPressed: () => setState(() => _hasStarted = false)
+        ),
       ),
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Fortschrittsbalken oben
-            LinearProgressIndicator(
-              value: progress,
-              backgroundColor: Colors.indigo.withAlpha(50),
-              color: Colors.orangeAccent,
-              minHeight: 8,
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 500),
+              child: LinearProgressIndicator(
+                value: progress,
+                backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+                color: Colors.orangeAccent,
+                minHeight: 8,
+              ),
             ),
             const SizedBox(height: 40),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
                 children: [
-                  Text(
-                    "Wie übersetzt du das?",
-                    style: TextStyle(fontSize: 16, color: Colors.grey.shade600, letterSpacing: 1.1),
-                  ),
-                  const SizedBox(height: 20),
-                  // Die Vokabel-Karte
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(30),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.indigo.withAlpha(20),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        )
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          word.english,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: Colors.indigo),
-                        ),
-                        const SizedBox(height: 12),
-                        // NEU: Lautsprecher-Button zum manuellen Vorlesen
-                        IconButton(
-                          onPressed: () => ref.read(ttsServiceProvider).speak(word.english),
-                          icon: const Icon(Icons.volume_up_rounded, color: Colors.indigo, size: 32),
-                          tooltip: 'Anhören',
-                        ),
-                      ],
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 400),
+                    child: Container(
+                      key: ValueKey(word.english),
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(30),
+                      decoration: BoxDecoration(
+                        color: theme.cardColor,
+                        borderRadius: BorderRadius.circular(30),
+                        boxShadow: [
+                          BoxShadow(
+                            color: isDark ? Colors.black45 : theme.colorScheme.primary.withValues(alpha: 0.1), 
+                            blurRadius: 20, 
+                            offset: const Offset(0, 10)
+                          )
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            word.english, 
+                            textAlign: TextAlign.center, 
+                            style: theme.textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.w900,
+                              color: isDark ? Colors.white : theme.colorScheme.primary,
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () => ref.read(ttsServiceProvider).speak(word.english), 
+                            icon: Icon(
+                              Icons.volume_up_rounded, 
+                              color: isDark ? Colors.white70 : theme.colorScheme.primary, 
+                              size: 32
+                            )
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 40),
-                  // Eingabefeld
                   TextField(
                     controller: _answerController,
                     autofocus: true,
                     textAlign: TextAlign.center,
                     style: const TextStyle(fontSize: 20),
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       hintText: 'Deine Antwort...',
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        borderSide: BorderSide.none,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        borderSide: BorderSide(color: Colors.grey.shade200),
-                      ),
                     ),
                     onSubmitted: (_) => _feedback.isEmpty ? _check(word.german) : null,
                   ),
                   const SizedBox(height: 30),
-                  // Feedback & Buttons
-                  if (_feedback.isEmpty)
-                    SizedBox(
-                      width: double.infinity,
-                      height: 60,
-                      child: ElevatedButton(
-                        onPressed: () => _check(word.german),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.indigo,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                        ),
-                        child: const Text('PRÜFEN', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                      ),
-                    )
-                  else ...[
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: _answeredCorrectly ? Colors.green.withAlpha(30) : Colors.red.withAlpha(30),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: _answeredCorrectly ? Colors.green : Colors.red),
-                      ),
-                      child: Text(
-                        _feedback,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 18, 
-                          color: _answeredCorrectly ? Colors.green.shade800 : Colors.red.shade800,
-                          fontWeight: FontWeight.bold
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 30),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 60,
-                      child: ElevatedButton(
-                        onPressed: _continue,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _answeredCorrectly ? Colors.green : Colors.indigo,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                        ),
-                        child: Text(_answeredCorrectly ? 'NÄCHSTES WORT' : 'VERSTANDEN', 
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                      ),
-                    ),
-                  ],
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    transitionBuilder: (Widget child, Animation<double> animation) {
+                      return ScaleTransition(scale: animation, child: child);
+                    },
+                    child: _feedback.isEmpty
+                        ? ElevatedButton(
+                            key: const ValueKey('button'),
+                            onPressed: () => _check(word.german),
+                            child: const Text('PRÜFEN', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                          )
+                        : Column(
+                            key: const ValueKey('feedback'),
+                            children: [
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  color: _answeredCorrectly ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: _answeredCorrectly ? Colors.green : Colors.red),
+                                ),
+                                child: Text(
+                                  _feedback, 
+                                  textAlign: TextAlign.center, 
+                                  style: TextStyle(
+                                    fontSize: 18, 
+                                    color: _answeredCorrectly ? Colors.green : Colors.red, 
+                                    fontWeight: FontWeight.bold
+                                  )
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              ElevatedButton(
+                                onPressed: _continue,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: _answeredCorrectly ? Colors.green : theme.colorScheme.primary,
+                                ),
+                                child: Text(_answeredCorrectly ? 'NÄCHSTES WORT' : 'VERSTANDEN', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                              ),
+                            ],
+                          ),
+                  ),
                 ],
               ),
             ),
@@ -213,35 +214,132 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     );
   }
 
-  Widget _buildSuccessScreen(BuildContext context) {
+  Widget _buildStartScreen(BuildContext context, dynamic quizState) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: Colors.indigo,
+      appBar: AppBar(title: const Text('Lernen')),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.stars, size: 120, color: Colors.orangeAccent),
-            const SizedBox(height: 30),
-            const Text('Großartig!', style: TextStyle(fontSize: 40, fontWeight: FontWeight.w900, color: Colors.white)),
-            const SizedBox(height: 10),
-            const Text('Du hast alle Wörter gewusst.', style: TextStyle(fontSize: 18, color: Colors.white70)),
-            const SizedBox(height: 50),
-            ElevatedButton(
-              onPressed: () => ref.read(quizProvider.notifier).restart(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.indigo,
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        child: Padding(
+          padding: const EdgeInsets.all(30.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Use local start animation
+              Lottie.asset(
+                'assets/animations/start.json',
+                width: 200,
+                height: 200,
+                errorBuilder: (context, error, stackTrace) => const Icon(Icons.school, size: 100, color: Colors.orangeAccent),
               ),
-              child: const Text('NOCHMAL ÜBEN', style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Zurück zur Liste', style: TextStyle(color: Colors.white70)),
-            ),
-          ],
+              const SizedBox(height: 20),
+              Text(
+                'Bereit für ein Training?', 
+                style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)
+              ),
+              const SizedBox(height: 40),
+              ElevatedButton(
+                onPressed: _startQuiz,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orangeAccent, 
+                  foregroundColor: Colors.black,
+                ),
+                child: const Text('STARTEN', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+              ),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSuccessScreen(BuildContext context) {
+    final theme = Theme.of(context);
+    return Scaffold(
+      body: Stack(
+        children: [
+          Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  theme.colorScheme.primary,
+                  theme.colorScheme.primary.withValues(alpha: 0.7),
+                ],
+              ),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Use local animated green checkmark
+                Lottie.asset(
+                  'assets/animations/success.json',
+                  width: 280,
+                  height: 280,
+                  repeat: false,
+                  errorBuilder: (context, error, stackTrace) {
+                    // Fallback to simple check icon if animation fails
+                    return const Icon(
+                      Icons.check_circle,
+                      size: 120,
+                      color: Colors.green,
+                    );
+                  },
+                ),
+                const Text(
+                  'PERFEKT!', 
+                  style: TextStyle(
+                    fontSize: 48, 
+                    fontWeight: FontWeight.w900, 
+                    color: Colors.white,
+                    letterSpacing: 3
+                  )
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'Alle Vokabeln gemeistert.',
+                  style: TextStyle(fontSize: 18, color: Colors.white70),
+                ),
+                const SizedBox(height: 60),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 40),
+                  child: Column(
+                    children: [
+                      ElevatedButton(
+                        onPressed: () {
+                          ref.read(quizProvider.notifier).restart();
+                          setState(() => _feedback = "");
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white, 
+                          foregroundColor: theme.colorScheme.primary,
+                          elevation: 10,
+                        ),
+                        child: const Text('NOCHMAL ÜBEN', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                      const SizedBox(height: 20),
+                      TextButton(
+                        onPressed: () => setState(() => _hasStarted = false), 
+                        child: const Text('Zum Startbildschirm', style: TextStyle(color: Colors.white70, fontSize: 16))
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Align(
+            alignment: Alignment.topCenter,
+            child: ConfettiWidget(
+              confettiController: _confettiController,
+              blastDirectionality: BlastDirectionality.explosive,
+              shouldLoop: false,
+              colors: const [Colors.orange, Colors.blue, Colors.white, Colors.yellow],
+              numberOfParticles: 30,
+            ),
+          ),
+        ],
       ),
     );
   }

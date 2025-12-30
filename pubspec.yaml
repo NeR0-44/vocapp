@@ -1,7 +1,7 @@
 name: vocapp
 description: "A new Flutter project."
 publish_to: 'none'
-version: 1.1.0+4
+version:  1.2.0+5
 
 environment:
   sdk: '>=3.2.0 <4.0.0'
@@ -16,6 +16,9 @@ dependencies:
   path_provider: ^2.1.2
   flutter_tts: ^4.2.2  # Das neue Sprach-Paket
   audioplayers: ^6.1.0  # NEU: Für Soundeffekte
+  lottie: ^3.1.2  # NEU: Für Animationen
+  confetti: ^0.7.0
+  flutter_native_splash: ^2.4.4
 
 dev_dependencies:
   flutter_test:
@@ -23,9 +26,32 @@ dev_dependencies:
   flutter_lints: ^3.0.0
   build_runner: ^2.4.9
   isar_generator: ^3.1.0+1
-
+  flutter_launcher_icons: ^0.13.1
+ 
 flutter:
   uses-material-design: true
   assets:
-  - assets/audio/success.wav
-  - assets/audio/error.wav
+    - assets/audio/success.wav
+    - assets/audio/error.wav
+    - assets/animations/success.json
+    - assets/animations/start.json
+    - assets/animations/celebration_fixed.json
+    - assets/icon/app_icon.png
+
+# Diese Blöcke müssen ganz links am Rand stehen (0 Leerzeichen Einrückung)!
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/app_icon.png"
+  # Diese beiden Zeilen sind der Schlüssel:
+  adaptive_icon_background: "#3F51B5" # Dein Indigo-Blau (Hex-Code)
+  adaptive_icon_foreground: "assets/icon/app_icon.png" 
+  # Sorgt dafür, dass es auf neueren Android-Versionen besser skaliert:
+  adaptive_icon_foreground_inset: 16
+
+flutter_native_splash:
+  color: "#3F51B5"
+  image: "assets/icon/app_icon.png"
+  android_12:
+    image: "assets/icon/app_icon.png"
+    color: "#3F51B5"

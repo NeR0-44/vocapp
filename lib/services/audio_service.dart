@@ -1,4 +1,5 @@
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart'; // WICHTIG: Für debugPrint
 
 class AudioService {
   final AudioPlayer _player = AudioPlayer();
@@ -6,12 +7,10 @@ class AudioService {
   Future<void> playSuccess() async {
     try {
       await _player.stop();
-      // Bei audioplayers 6.x nutzen wir AssetSource
-      // Hinweis: Wenn deine Datei in assets/audio/success.wav liegt,
-      // lautet der Pfad für AssetSource oft nur 'audio/success.wav'
       await _player.play(AssetSource('audio/success.wav'));
     } catch (e) {
-      print("Fehler beim Abspielen von Success-Sound: $e");
+      // debugPrint statt print ist Best Practice
+      debugPrint("Fehler beim Abspielen von Success-Sound: $e");
     }
   }
 
@@ -20,7 +19,7 @@ class AudioService {
       await _player.stop();
       await _player.play(AssetSource('audio/error.wav'));
     } catch (e) {
-      print("Fehler beim Abspielen von Error-Sound: $e");
+      debugPrint("Fehler beim Abspielen von Error-Sound: $e");
     }
   }
 }

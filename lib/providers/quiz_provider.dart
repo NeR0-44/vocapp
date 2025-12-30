@@ -12,21 +12,30 @@ class QuizState {
 }
 
 class QuizNotifier extends Notifier<QuizState> {
-  // Wir merken uns die Gesamtzahl der Wörter beim Start
   int _totalCount = 0;
   int get totalCount => _totalCount;
 
   @override
   QuizState build() {
-    final allWords = ref.watch(allVocabularyProvider).value ?? [];
+    // 1. Wir holen alle Wörter aus der Datenbank
+    final allWordsFromDb = ref.watch(allVocabularyProvider).value ?? [];
     
-    if (allWords.isEmpty) {
+    // 2. Wir schauen nach, welche Kategorie gerade auf dem HomeScreen ausgewählt ist
+    final selectedCategory = ref.watch(selectedCategoryProvider);
+    
+    // 3. Wir filtern die Wörter für das Quiz genau wie in der Liste
+    final filteredWords = allWordsFromDb.where((v) {
+      return selectedCategory == "Alle" || v.category == selectedCategory;
+    }).toList();
+    
+    if (filteredWords.isEmpty) {
       _totalCount = 0;
       return QuizState(remainingWords: []);
     }
     
-    _totalCount = allWords.length;
-    final shuffled = List<Vocabulary>.from(allWords)..shuffle();
+    _totalCount = filteredWords.length;
+    final shuffled = List<Vocabulary>.from(filteredWords)..shuffle();
+    
     return QuizState(
       remainingWords: shuffled,
       currentWord: shuffled.first,

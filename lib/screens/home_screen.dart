@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/vocabulary_provider.dart';
-import '../main.dart';
+import '../providers/theme_provider.dart';
+import '../models/vocabulary.dart';
 import 'add_vocabulary_screen.dart';
-import 'quiz_screen.dart';
 import 'edit_vocabulary_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -13,144 +14,188 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final vocabAsync = ref.watch(filteredVocabularyProvider);
     final searchQuery = ref.watch(searchQueryProvider);
+    final categories = ref.watch(categoryListProvider);
+    final selectedCategory = ref.watch(selectedCategoryProvider);
+    final themeMode = ref.watch(themeProvider);
+
+    final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color headerColor = theme.appBarTheme.backgroundColor ?? theme.colorScheme.primary;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
-      appBar: AppBar(
-        // Neutraler Titel für alle Themen
-        title: const Text('VocApp', 
-          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5)),
-        centerTitle: true,
-        elevation: 0,
-        backgroundColor: Colors.indigo, // Indigo wirkt oft universeller als Hellblau
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.psychology, size: 30), // Ein "Gehirn"-Icon passt super zum Lernen
-            tooltip: 'Quiz starten',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (context) => const QuizScreen()),
-            ),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // HEADER BEREICH
-          Container(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 30),
-            decoration: const BoxDecoration(
-              color: Colors.indigo,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(35),
-                bottomRight: Radius.circular(35),
+      body: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle.light,
+        child: Column(
+          children: [
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.only(
+                top: MediaQuery.of(context).padding.top + 10, 
+                bottom: 25, 
+                left: 20, 
+                right: 20
               ),
-            ),
-            child: Column(
-              children: [
-                const SizedBox(height: 10),
-                TextField(
-                  onChanged: (value) => ref.read(searchQueryProvider.notifier).state = value,
-                  decoration: InputDecoration(
-                    hintText: 'Begriff suchen...',
-                    prefixIcon: const Icon(Icons.search, color: Colors.indigo),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(15),
-                      borderSide: BorderSide.none,
+              decoration: BoxDecoration(
+                color: headerColor,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(35), 
+                  bottomRight: Radius.circular(35)
+                ),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const SizedBox(width: 40),
+                      Text(
+                        'VocApp', 
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => ref.read(themeProvider.notifier).toggleTheme(),
+                        icon: Icon(
+                          themeMode == ThemeMode.dark ? Icons.light_mode : Icons.dark_mode,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    onChanged: (value) => ref.read(searchQueryProvider.notifier).state = value,
+                    style: const TextStyle(color: Colors.black),
+                    decoration: const InputDecoration(
+                      hintText: 'Begriff suchen...',
+                      prefixIcon: Icon(Icons.search, color: Colors.indigo),
+                      fillColor: Colors.white, 
+                      filled: true,
                     ),
                   ),
-                ),
-                const SizedBox(height: 20),
-                vocabAsync.when(
-                  data: (vocabs) => Text(
-                    '${vocabs.length} Vokabeln in deiner Sammlung',
-                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w300),
-                  ),
-                  loading: () => const SizedBox(),
-                  error: (_, __) => const SizedBox(),
-                ),
-              ],
-            ),
-          ),
-          
-          Expanded(
-            child: vocabAsync.when(
-              data: (vocabs) => vocabs.isEmpty
-                  ? _buildEmptyState(searchQuery)
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-                      itemCount: vocabs.length,
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    height: 40,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: categories.length,
                       itemBuilder: (context, index) {
-                        final v = vocabs[index];
-                        return _buildVocabCard(context, ref, v);
+                        final cat = categories[index];
+                        final isSelected = selectedCategory == cat;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
+                            label: Text(cat),
+                            selected: isSelected,
+                            onSelected: (_) => ref.read(selectedCategoryProvider.notifier).state = cat,
+                            selectedColor: Colors.orangeAccent,
+                            backgroundColor: isDark ? Colors.white.withValues(alpha: 0.15) : Colors.indigo.withValues(alpha: 0.1),
+                            labelStyle: TextStyle(
+                              color: isSelected ? Colors.black : (isDark ? Colors.white : Colors.indigo),
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            ),
+                            side: BorderSide.none, 
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            showCheckmark: false,
+                          ),
+                        );
                       },
                     ),
-              loading: () => const Center(child: CircularProgressIndicator(color: Colors.indigo)),
-              error: (err, stack) => Center(child: Text('Fehler: $err')),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+            Expanded(
+              child: vocabAsync.when(
+                data: (vocabs) => vocabs.isEmpty
+                    ? Center(child: Text(searchQuery.isEmpty ? 'Liste ist leer.' : 'Kein Treffer.'))
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: vocabs.length,
+                        itemBuilder: (context, index) {
+                          final v = vocabs[index];
+                          return _buildAnimatedVocabCard(context, ref, v, index);
+                        },
+                      ),
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (err, stack) => Center(child: Text('Fehler: $err')),
+              ),
+            ),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (context) => const AddVocabularyScreen()),
-        ),
-        label: const Text('NEUES WORT', style: TextStyle(fontWeight: FontWeight.bold)),
+        onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => const AddVocabularyScreen())),
+        label: const Text('NEUES WORT'),
         icon: const Icon(Icons.add),
-        backgroundColor: Colors.indigo,
-        foregroundColor: Colors.white,
       ),
     );
   }
 
-  Widget _buildVocabCard(BuildContext context, WidgetRef ref, var v) {
-    return Card(
-      elevation: 0,
-      color: Colors.white,
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-        side: BorderSide(color: Colors.grey.shade200, width: 1),
-      ),
-      child: Dismissible(
-        key: Key(v.id.toString()),
-        direction: DismissDirection.endToStart,
-        background: Container(
-          decoration: BoxDecoration(
-            color: Colors.red.shade400,
-            borderRadius: BorderRadius.circular(15),
-          ),
-          alignment: Alignment.centerRight,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: const Icon(Icons.delete_outline, color: Colors.white),
+  Widget _buildAnimatedVocabCard(BuildContext context, WidgetRef ref, Vocabulary v, int index) {
+    final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+
+    return TweenAnimationBuilder<double>(
+      duration: Duration(milliseconds: 400 + (index * 50)),
+      tween: Tween(begin: 1.0, end: 0.0),
+      builder: (context, value, child) {
+        return Transform.translate(
+          offset: Offset(0, value * 30),
+          child: Opacity(opacity: 1.0 - value, child: child),
+        );
+      },
+      child: Card(
+        elevation: 0,
+        margin: const EdgeInsets.only(bottom: 12),
+        color: theme.cardColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15), 
+          side: BorderSide(color: isDark ? Colors.white10 : Colors.grey.shade200)
         ),
-        onDismissed: (_) => ref.read(isarServiceProvider).deleteVocabulary(v.id),
         child: ListTile(
-          title: Text(v.english, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          subtitle: Text(v.german, style: TextStyle(fontSize: 16, color: Colors.grey.shade600)),
-          trailing: Icon(Icons.chevron_right, color: Colors.indigo.shade100),
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (context) => EditVocabularyScreen(vocabulary: v)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          title: Text(
+            v.english, 
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : Colors.black,
+            ),
           ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                v.german, 
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                decoration: BoxDecoration(
+                  // KORREKTUR: withValues statt withOpacity
+                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  v.category.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 10, 
+                    fontWeight: FontWeight.bold, 
+                    color: isDark ? theme.colorScheme.primaryContainer : theme.colorScheme.primary
+                  ),
+                ),
+              ),
+            ],
+          ),
+          trailing: const Icon(Icons.edit_note),
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => EditVocabularyScreen(vocabulary: v))),
         ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState(String query) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.style_outlined, size: 100, color: Colors.grey.shade300),
-          const SizedBox(height: 16),
-          Text(
-            query.isEmpty ? 'Füge deine ersten Wörter hinzu!' : 'Keine Treffer gefunden.',
-            style: TextStyle(color: Colors.grey.shade500, fontSize: 16),
-          ),
-        ],
       ),
     );
   }

@@ -1,20 +1,23 @@
 import 'package:isar/isar.dart';
 
-// Diese Datei wird von Isar generiert
 part 'vocabulary.g.dart';
 
 @collection
 class Vocabulary {
-  Id id = Isar.autoIncrement; // Automatische ID
+  Id id = Isar.autoIncrement;
 
   late String english;
   late String german;
   
-  // Metadaten für später (z.B. Sortierung nach Datum)
+  // NEU: Jedes Wort gehört nun zu einer Kategorie
+  @Index()
+  String category = "Allgemein";
+
   DateTime createdAt = DateTime.now();
 
   Vocabulary({
     required this.english,
     required this.german,
+    this.category = "Allgemein",
   });
 }
