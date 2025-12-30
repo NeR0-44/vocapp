@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/vocabulary_provider.dart';
 import '../providers/theme_provider.dart';
 import '../models/vocabulary.dart';
+import '../main.dart'; // Wichtig für den isarServiceProvider
 import 'add_vocabulary_screen.dart';
 import 'edit_vocabulary_screen.dart';
 
@@ -27,6 +28,7 @@ class HomeScreen extends ConsumerWidget {
         value: SystemUiOverlayStyle.light,
         child: Column(
           children: [
+            // HEADER BEREICH
             Container(
               width: double.infinity,
               padding: EdgeInsets.only(
@@ -92,9 +94,9 @@ class HomeScreen extends ConsumerWidget {
                             selected: isSelected,
                             onSelected: (_) => ref.read(selectedCategoryProvider.notifier).state = cat,
                             selectedColor: Colors.orangeAccent,
-                            backgroundColor: isDark ? Colors.white.withValues(alpha: 0.15) : Colors.indigo.withValues(alpha: 0.1),
+                            backgroundColor: Colors.white.withValues(alpha: isDark ? 0.15 : 0.25),
                             labelStyle: TextStyle(
-                              color: isSelected ? Colors.black : (isDark ? Colors.white : Colors.indigo),
+                              color: isSelected ? Colors.black : Colors.white,
                               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                             ),
                             side: BorderSide.none, 
@@ -108,6 +110,8 @@ class HomeScreen extends ConsumerWidget {
                 ],
               ),
             ),
+            
+            // LISTE MIT ANIMATION & LÖSCH-FUNKTION
             Expanded(
               child: vocabAsync.when(
                 data: (vocabs) => vocabs.isEmpty
@@ -117,6 +121,7 @@ class HomeScreen extends ConsumerWidget {
                         itemCount: vocabs.length,
                         itemBuilder: (context, index) {
                           final v = vocabs[index];
+                          // Hier rufen wir die reparierte Card-Funktion auf
                           return _buildAnimatedVocabCard(context, ref, v, index);
                         },
                       ),
@@ -135,6 +140,7 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
+  // REPARIERTE FUNKTION: Jetzt wieder mit Dismissible (Wischen zum Löschen)
   Widget _buildAnimatedVocabCard(BuildContext context, WidgetRef ref, Vocabulary v, int index) {
     final theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
@@ -148,53 +154,78 @@ class HomeScreen extends ConsumerWidget {
           child: Opacity(opacity: 1.0 - value, child: child),
         );
       },
-      child: Card(
-        elevation: 0,
-        margin: const EdgeInsets.only(bottom: 12),
-        color: theme.cardColor,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15), 
-          side: BorderSide(color: isDark ? Colors.white10 : Colors.grey.shade200)
-        ),
-        child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          title: Text(
-            v.english, 
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : Colors.black,
-            ),
+      child: Dismissible(
+        // WICHTIG: Die ID aus der Datenbank als Key nutzen
+        key: Key(v.id.toString()),
+        direction: DismissDirection.endToStart,
+        background: Container(
+          decoration: BoxDecoration(
+            color: Colors.red.withValues(alpha: 0.8),
+            borderRadius: BorderRadius.circular(15),
           ),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                v.german, 
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: isDark ? Colors.grey[400] : Colors.grey[600],
-                ),
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: const Icon(Icons.delete_outline, color: Colors.white, size: 28),
+        ),
+        // Die eigentliche Lösch-Logik
+        onDismissed: (direction) {
+          ref.read(isarServiceProvider).deleteVocabulary(v.id);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${v.english} gelöscht'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        },
+        child: Card(
+          elevation: 0,
+          margin: const EdgeInsets.only(bottom: 12),
+          color: theme.cardColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15), 
+            side: BorderSide(color: isDark ? Colors.white10 : Colors.grey.shade200)
+          ),
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            title: Text(
+              v.english, 
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : Colors.black,
               ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                decoration: BoxDecoration(
-                  // KORREKTUR: withValues statt withOpacity
-                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  v.category.toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 10, 
-                    fontWeight: FontWeight.bold, 
-                    color: isDark ? theme.colorScheme.primaryContainer : theme.colorScheme.primary
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  v.german, 
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: isDark ? Colors.grey[400] : Colors.grey[600],
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    v.category.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 10, 
+                      fontWeight: FontWeight.bold, 
+                      color: isDark ? theme.colorScheme.primaryContainer : theme.colorScheme.primary
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            trailing: const Icon(Icons.edit_note),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (context) => EditVocabularyScreen(vocabulary: v))
+            ),
           ),
-          trailing: const Icon(Icons.edit_note),
-          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => EditVocabularyScreen(vocabulary: v))),
         ),
       ),
     );
