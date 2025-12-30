@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/quiz_provider.dart';
+import '../main.dart'; // WICHTIG: Import für den ttsServiceProvider
 
 class QuizScreen extends ConsumerStatefulWidget {
   const QuizScreen({super.key});
@@ -20,9 +21,13 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
       if (input == correctAnswer.toLowerCase()) {
         _feedback = "Hervorragend! 🎉";
         _answeredCorrectly = true;
+        // SOUND BEI ERFOLG
+        ref.read(audioServiceProvider).playSuccess();
       } else {
         _feedback = "Nicht ganz korrekt.\nDie Antwort ist: $correctAnswer";
         _answeredCorrectly = false;
+        // SOUND BEI FEHLER
+        ref.read(audioServiceProvider).playError();
       }
     });
   }
@@ -38,6 +43,13 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
   @override
   Widget build(BuildContext context) {
     final quizState = ref.watch(quizProvider);
+
+    // AUTO-SPEAK: Liest das Wort automatisch vor, wenn ein neues erscheint
+    ref.listen(quizProvider, (previous, next) {
+      if (next.currentWord != null && _feedback.isEmpty && previous?.currentWord != next.currentWord) {
+        ref.read(ttsServiceProvider).speak(next.currentWord!.english);
+      }
+    });
 
     // 1. Fall: Keine Vokabeln vorhanden
     if (quizState.remainingWords.isEmpty && !quizState.isFinished) {
@@ -55,8 +67,8 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     // 3. Fall: Das eigentliche Quiz
     final word = quizState.currentWord!;
     
-    // Fortschritt berechnen (für den Fortschrittsbalken)
-    final totalWords = ref.read(quizProvider.notifier).totalCount; // Wir fügen diesen Getter gleich im Provider hinzu
+    // Fortschritt berechnen
+    final totalWords = ref.read(quizProvider.notifier).totalCount;
     final progress = totalWords > 0 ? (totalWords - quizState.remainingWords.length) / totalWords : 0.0;
 
     return Scaffold(
@@ -90,7 +102,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                   // Die Vokabel-Karte
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(40),
+                    padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(30),
@@ -102,12 +114,22 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                         )
                       ],
                     ),
-                    child: Center(
-                      child: Text(
-                        word.english,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: Colors.indigo),
-                      ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          word.english,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: Colors.indigo),
+                        ),
+                        const SizedBox(height: 12),
+                        // NEU: Lautsprecher-Button zum manuellen Vorlesen
+                        IconButton(
+                          onPressed: () => ref.read(ttsServiceProvider).speak(word.english),
+                          icon: const Icon(Icons.volume_up_rounded, color: Colors.indigo, size: 32),
+                          tooltip: 'Anhören',
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 40),

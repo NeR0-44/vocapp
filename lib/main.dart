@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'services/isar_service.dart';
-import 'screens/home_screen.dart'; // WICHTIG: Import hinzufügen
+import 'screens/home_screen.dart'; 
+import 'services/tts_service.dart';
+import 'services/audio_service.dart'; 
 
 final isarServiceProvider = Provider((ref) => IsarService());
+final ttsServiceProvider = Provider((ref) => TtsService());
+final audioServiceProvider = Provider((ref) => AudioService());
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
