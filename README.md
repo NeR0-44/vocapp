@@ -1,28 +1,34 @@
-# VocApp - Mechanical Engineering Vocabulary Trainer 🛠️
+# VocApp - Dein universeller Vokabeltrainer 🧠🚀
 
-VocApp ist ein spezialisierter Vokabeltrainer für Fachbegriffe aus dem Maschinenbau. Entwickelt mit Flutter, bietet die App eine schnelle und intuitive Möglichkeit, technisches Englisch zu lernen.
+VocApp ist ein moderner, intuitiver Vokabeltrainer, der für jedes Fachgebiet und jede Sprache eingesetzt werden kann. Entwickelt mit Flutter, kombiniert die App schlichtes Design mit leistungsstarker Technik.
 
-## Aktuelle Version: v1.0.1 🚀
+## Aktuelle Version: v1.0.2 (The Experience Update) 💎
 
-### Neue Features in v1.0.1
-- **Reaktive Suche:** Sofortiges Filtern der Vokabel-Liste direkt über die Startseite.
-- **Optimierte Quiz-Sitzungen:** Wörter verbleiben in der aktuellen Sitzung, bis sie mindestens einmal korrekt beantwortet wurden.
-- **Verbesserte Navigation:** Schnellerer Wechsel zwischen Liste, Editor und Quiz.
+### Highlights in v1.0.2
+- **Neues Design:** Umstellung auf ein modernes Card-Layout im "Indigo-Stil" für bessere Lesbarkeit.
+- **Interaktives Quiz 2.0:** 
+  - **Fortschrittsbalken:** Behalte deinen Fortschritt während der Lernsession immer im Blick.
+  - **Erfolgs-Screen:** Ein motivierender Abschlussbildschirm, wenn alle Vokabeln gelernt wurden.
+  - **Visuelles Feedback:** Sofortige farbliche Rückmeldung bei richtigen oder falschen Antworten.
+- **Statistik-Header:** Sieh direkt auf dem Hauptbildschirm, wie viele Wörter sich bereits in deiner Sammlung befinden.
 
-### Kernfunktionen (Features)
-- **Vollständiges CRUD:** Vokabeln hinzufügen, anzeigen, bearbeiten und per Swipe-Geste löschen.
-- **Lokale Datenbank:** Blitzschnelle Speicherung mit **Isar Database** (keine Internetverbindung erforderlich).
-- **Fortschrittsanzeige:** Behalte im Quiz den Überblick, wie viele Wörter noch vor dir liegen.
-- **State Management:** Konsistente Datenhaltung durch **Riverpod**.
+### Kernfunktionen
+- **Universell einsetzbar:** Keine Beschränkung auf Fachgebiete mehr – lerne, was du willst!
+- **Smarte Suche:** Finde Vokabeln blitzschnell durch die reaktive Suchleiste.
+- **Vollständiges CRUD:** Einfaches Hinzufügen, Bearbeiten und Löschen (per Swipe-Geste).
+- **Offline-First:** Alle Daten werden sicher in der lokalen **Isar Database** gespeichert.
 
 ## Tech Stack 💻
 - **Framework:** Flutter
-- **Sprache:** Dart
 - **Datenbank:** Isar
-- **Zustandsverwaltung:** Riverpod
-- **Pfadverwaltung:** path_provider
+- **State Management:** Riverpod (Notifier & Providers)
+- **Design:** Material 3 mit Custom Card-Layouts
 
-## Installation & Start 🏁
-1. Klone das Repository:
-   ```bash
-   git clone https://github.com/NeR0-44/vocapp.git
+## Installation
+1. `git clone https://github.com/NeR0-44/vocapp.git`
+2. `flutter pub get`
+3. `dart run build_runner build --delete-conflicting-outputs`
+4. `flutter run`
+
+---
+*Vom Maschinenbau-Prototyp zum universellen Lerntool.*

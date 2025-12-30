@@ -3,29 +3,29 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'vocabulary_provider.dart';
 import '../models/vocabulary.dart';
 
-// Wir definieren den Zustand des Quizzes
 class QuizState {
   final List<Vocabulary> remainingWords;
   final Vocabulary? currentWord;
   final bool isFinished;
 
-  QuizState({
-    required this.remainingWords, 
-    this.currentWord, 
-    this.isFinished = false
-  });
+  QuizState({required this.remainingWords, this.currentWord, this.isFinished = false});
 }
 
 class QuizNotifier extends Notifier<QuizState> {
+  // Wir merken uns die Gesamtzahl der Wörter beim Start
+  int _totalCount = 0;
+  int get totalCount => _totalCount;
+
   @override
   QuizState build() {
-    // HIER WAR DER FEHLER: Wir nutzen jetzt allVocabularyProvider
     final allWords = ref.watch(allVocabularyProvider).value ?? [];
     
     if (allWords.isEmpty) {
+      _totalCount = 0;
       return QuizState(remainingWords: []);
     }
     
+    _totalCount = allWords.length;
     final shuffled = List<Vocabulary>.from(allWords)..shuffle();
     return QuizState(
       remainingWords: shuffled,
