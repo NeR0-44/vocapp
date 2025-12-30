@@ -1,14 +1,16 @@
-# VocApp v1.0.0 🚀
+# vocapp
 
-Ein moderner Vokabeltrainer für Maschinenbau-Begriffe, entwickelt mit Flutter.
+A new Flutter project.
 
-## Features
-- **CRUD Operations**: Vokabeln hinzufügen, anzeigen, bearbeiten und per Swipe löschen.
-- **Local Database**: Schnelle und sichere Speicherung mit Isar.
-- **Quiz Mode**: Interaktive Quiz-Sitzungen mit Fortschrittsanzeige.
-- **State Management**: Sauberer Code durch Riverpod.
+## Getting Started
 
-## Tech Stack
-- Flutter & Dart
-- Isar Database
-- Riverpod (State Management)
+This project is a starting point for a Flutter application.
+
+A few resources to get you started if this is your first Flutter project:
+
+- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
+- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+
+For help getting started with Flutter development, view the
+[online documentation](https://docs.flutter.dev/), which offers tutorials,
+samples, guidance on mobile development, and a full API reference.
