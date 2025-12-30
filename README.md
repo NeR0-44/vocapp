@@ -1,16 +1,28 @@
-# vocapp
+# VocApp - Mechanical Engineering Vocabulary Trainer 🛠️
 
-A new Flutter project.
+VocApp ist ein spezialisierter Vokabeltrainer für Fachbegriffe aus dem Maschinenbau. Entwickelt mit Flutter, bietet die App eine schnelle und intuitive Möglichkeit, technisches Englisch zu lernen.
 
-## Getting Started
+## Aktuelle Version: v1.0.1 🚀
 
-This project is a starting point for a Flutter application.
+### Neue Features in v1.0.1
+- **Reaktive Suche:** Sofortiges Filtern der Vokabel-Liste direkt über die Startseite.
+- **Optimierte Quiz-Sitzungen:** Wörter verbleiben in der aktuellen Sitzung, bis sie mindestens einmal korrekt beantwortet wurden.
+- **Verbesserte Navigation:** Schnellerer Wechsel zwischen Liste, Editor und Quiz.
 
-A few resources to get you started if this is your first Flutter project:
+### Kernfunktionen (Features)
+- **Vollständiges CRUD:** Vokabeln hinzufügen, anzeigen, bearbeiten und per Swipe-Geste löschen.
+- **Lokale Datenbank:** Blitzschnelle Speicherung mit **Isar Database** (keine Internetverbindung erforderlich).
+- **Fortschrittsanzeige:** Behalte im Quiz den Überblick, wie viele Wörter noch vor dir liegen.
+- **State Management:** Konsistente Datenhaltung durch **Riverpod**.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## Tech Stack 💻
+- **Framework:** Flutter
+- **Sprache:** Dart
+- **Datenbank:** Isar
+- **Zustandsverwaltung:** Riverpod
+- **Pfadverwaltung:** path_provider
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Installation & Start 🏁
+1. Klone das Repository:
+   ```bash
+   git clone https://github.com/NeR0-44/vocapp.git
