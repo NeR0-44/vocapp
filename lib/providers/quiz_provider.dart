@@ -16,18 +16,16 @@ class QuizState {
   });
 }
 
-// Der Notifier verwaltet die Logik
 class QuizNotifier extends Notifier<QuizState> {
   @override
   QuizState build() {
-    // Am Anfang holen wir alle Vokabeln aus der DB
-    final allWords = ref.watch(vocabularyListProvider).value ?? [];
+    // HIER WAR DER FEHLER: Wir nutzen jetzt allVocabularyProvider
+    final allWords = ref.watch(allVocabularyProvider).value ?? [];
     
     if (allWords.isEmpty) {
       return QuizState(remainingWords: []);
     }
     
-    // Wir mischen die Liste und wählen das erste Wort
     final shuffled = List<Vocabulary>.from(allWords)..shuffle();
     return QuizState(
       remainingWords: shuffled,
@@ -37,10 +35,8 @@ class QuizNotifier extends Notifier<QuizState> {
 
   void checkAnswer(bool wasCorrect) {
     if (!wasCorrect) {
-      // Bei einem Fehler: Wort bleibt in der Liste, wir würfeln nur neu
       _pickNextWord(removeCurrent: false);
     } else {
-      // Richtig beantwortet: Wort aus der Liste entfernen
       _pickNextWord(removeCurrent: true);
     }
   }
@@ -55,18 +51,16 @@ class QuizNotifier extends Notifier<QuizState> {
     if (currentList.isEmpty) {
       state = QuizState(remainingWords: [], isFinished: true);
     } else {
-      // Neues zufälliges Wort aus der Restliste
       final nextWord = currentList[Random().nextInt(currentList.length)];
       state = QuizState(remainingWords: currentList, currentWord: nextWord);
     }
   }
 
   void restart() {
-    ref.invalidateSelf(); // Startet den Provider (und damit build()) neu
+    ref.invalidateSelf();
   }
 }
 
-// Der Provider, den wir im UI nutzen
 final quizProvider = NotifierProvider<QuizNotifier, QuizState>(() {
   return QuizNotifier();
 });
